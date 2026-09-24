@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CarbonIQ — Emissions Workspace</title>
+    <meta name="description" content="A minimal industrial carbon dashboard for cement and electricity emissions, historical analysis, and reduction planning.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') if url_for is defined else 'static/styles.css' }}">
+</head>
+<body>
+    <div id="auth-modal" class="auth-overlay" aria-modal="true" role="dialog" aria-labelledby="auth-title">
+        <div class="auth-card">
+            <div class="auth-brand">
+                <span class="brand-mark"><i class="fa-solid fa-leaf"></i></span>
+                <div>
+                    <strong>CarbonIQ</strong>
+                    <span>Emissions workspace</span>
+                </div>
+            </div>
+
+            <div class="auth-heading">
+                <p class="eyebrow">SECURE WORKSPACE</p>
+                <h1 id="auth-title">Welcome back</h1>
+                <p>Sign in to manage plant emissions and reduction scenarios.</p>
+            </div>
+
+            <div class="auth-tabs" role="tablist" aria-label="Authentication options">
+                <button type="button" class="auth-tab-btn active" id="tab-login-btn" role="tab" aria-selected="true">Sign in</button>
+                <button type="button" class="auth-tab-btn" id="tab-signup-btn" role="tab" aria-selected="false">Create account</button>
+            </div>
+
+            <div id="auth-error-msg" class="auth-error-alert" role="alert" hidden></div>
+
+            <form id="login-form" class="auth-form active">
+                <div class="form-group">
+                    <label for="login-username">Username</label>
+                    <div class="input-with-icon">
+                        <i class="fa-regular fa-user"></i>
+                        <input type="text" id="login-username" value="admin" required autocomplete="username" placeholder="Enter your username">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <div class="input-with-icon">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" id="login-password" value="admin123" required autocomplete="current-password" placeholder="Enter your password">
+                    </div>
+                </div>
+                <div class="auth-demo-hint">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span>Demo: <strong>admin / admin123</strong></span>
+                </div>
+                <button type="submit" class="primary-button auth-submit" id="login-submit-btn">
+                    Sign in to dashboard <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </form>
+
+            <form id="signup-form" class="auth-form">
+                <div class="form-group">
+                    <label for="reg-username">Username</label>
+                    <div class="input-with-icon">
+                        <i class="fa-regular fa-user"></i>
+                        <input type="text" id="reg-username" required autocomplete="username" placeholder="Choose a username">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="reg-password">Password</label>
+                    <div class="input-with-icon">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" id="reg-password" required autocomplete="new-password" placeholder="Create a password">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="reg-role">Your role</label>
+                    <div class="input-with-icon select-icon">
+                        <i class="fa-regular fa-id-badge"></i>
+                        <select id="reg-role">
+                            <option value="Sustainability Director">Sustainability Director</option>
+                            <option value="Plant Environmental Engineer">Plant Environmental Engineer</option>
+                            <option value="Carbon Compliance Auditor">Carbon Compliance Auditor</option>
+                            <option value="Shift Operations Manager">Shift Operations Manager</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="primary-button auth-submit" id="reg-submit-btn">
+                    Create account <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="app-shell" id="app-container">
+        <aside class="sidebar" aria-label="Primary navigation">
+            <div class="sidebar-brand">
+                <span class="brand-mark"><i class="fa-solid fa-leaf"></i></span>
+                <div>
+                    <strong>CarbonIQ</strong>
+                    <span>Carbon workspace</span>
+                </div>
+            </div>
+
+            <div class="nav-label">Workspace</div>
+            <nav class="sidebar-nav">
+                <button type="button" class="sidebar-nav-btn active" data-view="overview" aria-current="page">
+                    <span class="nav-icon nav-icon-total"><i class="fa-solid fa-chart-pie"></i></span>
+                    <span class="nav-copy">
+                        <strong>Total overview</strong>
+                        <small>Charts & old records</small>
+                    </span>
+                    <i class="fa-solid fa-chevron-right nav-arrow"></i>
+                </button>
+                <button type="button" class="sidebar-nav-btn" data-view="cement">
+                    <span class="nav-icon nav-icon-cement"><i class="fa-solid fa-industry"></i></span>
+                    <span class="nav-copy">
+                        <strong>Cement</strong>
+                        <small>CO₂ from production</small>
+                    </span>
+                    <i class="fa-solid fa-chevron-right nav-arrow"></i>
+                </button>
+                <button type="button" class="sidebar-nav-btn" data-view="electricity">
+                    <span class="nav-icon nav-icon-power"><i class="fa-solid fa-bolt"></i></span>
+                    <span class="nav-copy">
+                        <strong>Electricity</strong>
+                        <small>CO₂ from grid power</small>
+                    </span>
+                    <i class="fa-solid fa-chevron-right nav-arrow"></i>
+                </button>
+            </nav>
+
+            <div class="sidebar-spacer"></div>
+
+            <div class="model-status-card">
+                <span class="status-icon"><i class="fa-solid fa-circle-check"></i></span>
+                <div>
+                    <strong>Prediction models ready</strong>
+                    <span>Cement and electricity</span>
+                </div>
+            </div>
+
+            <div class="sidebar-user">
+                <span class="user-avatar" id="user-display-avatar">AD</span>
+                <div class="user-meta">
+                    <strong id="user-display-name">admin</strong>
+                    <span id="user-display-role">Sustainability Director</span>
+                </div>
+                <button type="button" class="icon-button logout-btn" id="logout-btn" title="Sign out" aria-label="Sign out">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                </button>
+            </div>
+        </aside>
+
+        <main class="main-shell">
+            <header class="topbar">
+                <div class="breadcrumbs">
+                    <span>Operations</span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                    <strong id="page-crumb">Total overview</strong>
+                </div>
+                <div class="topbar-actions">
+                    <span class="live-status"><span></span> Live model</span>
+                    <div class="topbar-user">
+                        <span class="user-avatar small" id="user-display-avatar-mobile">AD</span>
+                        <div>
+                            <strong id="user-display-name-mobile">admin</strong>
+                            <span>Plant workspace</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-wrap">
+                <!-- TOTAL OVERVIEW -->
+                <section class="view active" id="view-overview" data-view-panel="overview">
+                    <div class="page-heading overview-heading">
+                        <div>
+                            <p class="eyebrow">TOTAL EMISSIONS</p>
+                            <h1>One clear view of your carbon.</h1>
+                            <p>See where emissions come from, how they move through the plant, and how they compare with past batches.</p>
+                        </div>
+                        <div class="heading-note">
+                            <i class="fa-regular fa-calendar"></i>
+                            <span><strong id="history-range-label">50 batches</strong> in the history</span>
+                        </div>
+                    </div>
+
+                    <div class="metric-grid">
+                        <article class="metric-card metric-card-total">
+                            <div class="metric-topline">
+                                <span>Current total footprint</span>
+                                <span class="metric-icon metric-icon-total"><i class="fa-solid fa-earth-americas"></i></span>
+                            </div>
+                            <strong class="metric-value" id="kpi-combined-co2">— <small>tCO₂</small></strong>
+                            <p><span id="overview-combined-share">—</span> of the current scenario</p>
+                        </article>
+                        <article class="metric-card">
+                            <div class="metric-topline">
+                                <span>Cement · Scope 1</span>
+                                <span class="metric-dot cement"></span>
+                            </div>
+                            <strong class="metric-value" id="kpi-cement-co2">— <small>tCO₂</small></strong>
+                            <p id="overview-cement-share">— of total emissions</p>
+                        </article>
+                        <article class="metric-card">
+                            <div class="metric-topline">
+                                <span>Electricity · Scope 2</span>
+                                <span class="metric-dot power"></span>
+                            </div>
+                            <strong class="metric-value" id="kpi-elec-co2">— <small>tCO₂</small></strong>
+                            <p id="overview-elec-share">— of total emissions</p>
+                        </article>
+                        <article class="metric-card metric-card-saving">
+                            <div class="metric-topline">
+                                <span>Reduction opportunity</span>
+                                <span class="metric-icon metric-icon-save"><i class="fa-solid fa-arrow-trend-down"></i></span>
+                            </div>
+                            <strong class="metric-value" id="kpi-abatement-total">— <small>tCO₂</small></strong>
+                            <p>Avoided versus the plant baseline</p>
+                        </article>
+                    </div>
+
+                    <div class="overview-visual-grid">
+                        <article class="panel-card donut-card">
+                            <div class="panel-header">
+                                <div>
+                                    <span class="panel-kicker">CURRENT SCENARIO</span>
+                                    <h2>Emission split</h2>
+                                </div>
+                                <span class="panel-period">Live</span>
+                            </div>
+                            <div class="donut-layout">
+                                <div class="donut-wrap" id="donut-wrap">
+                                    <canvas id="emissions-donut" aria-label="Cement and electricity emission share"></canvas>
+                                    <div class="donut-center">
+                                        <span id="donut-total-value">—</span>
+                                        <small>tCO₂ total</small>
+                                    </div>
+                                </div>
+                                <div class="donut-legend">
+                                    <div class="legend-row">
+                                        <span class="legend-swatch cement"></span>
+                                        <div><strong>Cement</strong><small>Process + kiln fuel</small></div>
+                                        <span id="donut-cement-percent">—</span>
+                                    </div>
+                                    <div class="legend-row">
+                                        <span class="legend-swatch power"></span>
+                                        <div><strong>Electricity</strong><small>Grid energy</small></div>
+                                        <span id="donut-elec-percent">—</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="panel-card flow-card">
+                            <div class="panel-header">
+                                <div>
+                                    <span class="panel-kicker">EMISSION FLOW</span>
+                                    <h2>From inputs to output</h2>
+                                </div>
+                                <i class="fa-solid fa-diagram-project panel-header-icon"></i>
+                            </div>
+                            <div class="flowchart" aria-label="Cement and electricity emissions flow">
+                                <div class="flow-lane">
+                                    <div class="flow-node flow-input">
+                                        <span class="flow-node-icon cement"><i class="fa-solid fa-cubes"></i></span>
+                                        <div>
+                                            <small>Cement inputs</small>
+                                            <strong id="overview-flow-cement-input">—</strong>
+                                        </div>
+                                    </div>
+                                    <div class="flow-arrow"><span></span><i class="fa-solid fa-chevron-right"></i></div>
+                                    <div class="flow-node flow-process">
+                                        <span class="flow-node-icon neutral"><i class="fa-solid fa-fire-flame-curved"></i></span>
+                                        <div>
+                                            <small>Process</small>
+                                            <strong>Calcination + kiln</strong>
+                                        </div>
+                                    </div>
+                                    <div class="flow-arrow"><span></span><i class="fa-solid fa-chevron-right"></i></div>
+                                    <div class="flow-node flow-output">
+                                        <div>
+                                            <small>Cement CO₂</small>
+                                            <strong id="overview-flow-cement-output">—</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flow-lane">
+                                    <div class="flow-node flow-input">
+                                        <span class="flow-node-icon power"><i class="fa-solid fa-bolt"></i></span>
+                                        <div>
+                                            <small>Power inputs</small>
+                                            <strong id="overview-flow-power-input">—</strong>
+                                        </div>
+                                    </div>
+                                    <div class="flow-arrow"><span></span><i class="fa-solid fa-chevron-right"></i></div>
+                                    <div class="flow-node flow-process">
+                                        <span class="flow-node-icon neutral"><i class="fa-solid fa-gauge-high"></i></span>
+                                        <div>
+                                            <small>Process</small>
+                                            <strong>Grid + renewable mix</strong>
+                                        </div>
+                                    </div>
+                                    <div class="flow-arrow"><span></span><i class="fa-solid fa-chevron-right"></i></div>
+                                    <div class="flow-node flow-output">
+                                        <div>
+                                            <small>Power CO₂</small>
+                                            <strong id="overview-flow-power-output">—</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+
+                    <article class="panel-card trend-card">
+                        <div class="panel-header trend-header">
+                            <div>
+                                <span class="panel-kicker">HISTORICAL OUTPUT</span>
+                                <h2>Emissions over time</h2>
+                            </div>
+                            <div class="chart-controls">
+                                <span class="chart-legend-inline"><i class="cement"></i> Cement</span>
+                                <span class="chart-legend-inline"><i class="power"></i> Electricity</span>
+                                <select id="history-range" aria-label="History range">
+                                    <option value="10">Last 10</option>
+                                    <option value="30">Last 30</option>
+                                    <option value="50" selected>All 50</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="trend-chart-wrap">
+                            <canvas id="chart-daily-mini" aria-label="Historical cement and electricity emissions"></canvas>
+        </div>
+                    </article>
+
+                    <article class="panel-card monthly-card">
+                        <div class="panel-header monthly-header">
+                            <div>
+                                <span class="panel-kicker">MONTHLY RELEASE</span>
+                                <h2>Monthly CO₂ overview</h2>
+                            </div>
+                            <div class="monthly-header-side">
+                                <div class="monthly-chart-legend">
+                                    <span class="chart-legend-inline"><i class="cement"></i> Cement</span>
+                                    <span class="chart-legend-inline"><i class="power"></i> Electricity</span>
+                                </div>
+                                <div class="monthly-highlight">
+                                    <span id="monthly-latest-label">Latest month</span>
+                                    <strong id="monthly-latest-total">— <small>tCO₂</small></strong>
+                                    <span id="monthly-latest-days">—</span>
+                                    <small id="monthly-change">—</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="monthly-layout">
+                            <div class="monthly-chart-wrap">
+                                <canvas id="monthly-co2-chart" aria-label="Monthly cement and electricity carbon release"></canvas>
+                            </div>
+                            <div class="monthly-summary-list" id="monthly-summary-list">
+                                <div class="table-empty">Loading monthly summary…</div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <div class="overview-bottom-grid">
+                        <article class="panel-card history-card">
+                            <div class="panel-header history-header">
+                                <div>
+                                    <span class="panel-kicker">OLD INPUTS & OUTPUTS</span>
+                                    <h2>Historical batches</h2>
+                                </div>
+                                <div class="table-search">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                    <input type="search" id="daily-ledger-search" placeholder="Search batch or date" aria-label="Search historical batches">
+                                </div>
+                            </div>
+                            <div class="table-wrap history-table-wrap">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Date / batch</th>
+                                            <th>Old input mix</th>
+                                            <th>Cement CO₂</th>
+                                            <th>Power CO₂</th>
+                                            <th>Total CO₂</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="daily-ledger-tbody">
+                                        <tr><td colspan="5" class="table-empty">Loading historical records…</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </article>
+
+                        <article class="panel-card saved-card">
+                            <div class="panel-header">
+                                <div>
+                                    <span class="panel-kicker">SAVED SCENARIOS</span>
+                                    <h2>Recent calculations</h2>
+                                </div>
+                                <button type="button" class="icon-button refresh-button" id="refresh-history-btn" title="Refresh history" aria-label="Refresh saved calculations">
+                                    <i class="fa-solid fa-rotate"></i>
+                                </button>
+                            </div>
+                            <div class="saved-list" id="db-history-list">
+                                <div class="table-empty">Loading saved calculations…</div>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <!-- CEMENT VIEW -->
+                <section class="view" id="view-cement" data-view-panel="cement" hidden>
+                    <div class="page-heading">
+                        <div>
+                            <p class="eyebrow">CEMENT · SCOPE 1</p>
+                            <h1>Reduce cement emissions.</h1>
+                            <p>Adjust production inputs and see the predicted CO₂ impact instantly.</p>
+                        </div>
+                        <span class="scope-badge cement"><i class="fa-solid fa-industry"></i> Direct process emissions</span>
+                    </div>
+
+                    <div class="simulator-grid">
+                        <article class="panel-card controls-card">
+                            <div class="panel-header controls-header">
+                                <div>
+                                    <span class="panel-kicker">SIMULATION INPUTS</span>
+                                    <h2>Cement production</h2>
+                                </div>
+                                <button type="button" class="secondary-button reset-button" data-reset="cement">
+                                    <i class="fa-solid fa-rotate-left"></i> Reset
+                                </button>
+                            </div>
+                            <div class="controls-body">
+                                <div class="control-group">
+                                    <div class="control-heading">
+                                        <div><label for="inp-clinker">Clinker factor</label><small>Lower clinker means less calcination CO₂.</small></div>
+                                        <output id="lbl-clinker" for="inp-clinker">0.750</output>
+                                    </div>
+                                    <input type="range" id="inp-clinker" min="0.650" max="0.850" step="0.005" value="0.750">
+                                    <div class="range-scale"><span>0.65 · lower</span><span>0.85 · higher</span></div>
+                                </div>
+
+                                <div class="control-group">
+                                    <div class="control-heading">
+                                        <div><label for="inp-coal">Coal consumed</label><small>Fossil heat used by the kiln.</small></div>
+                                        <output id="lbl-coal" for="inp-coal">12.5 <small>tons</small></output>
+                                    </div>
+                                    <input type="range" id="inp-coal" min="8.0" max="16.0" step="0.1" value="12.5">
+                                    <div class="range-scale"><span>8 t</span><span>16 t</span></div>
+                                </div>
+
+                                <div class="control-group">
+                                    <div class="control-heading">
+                                        <div><label for="inp-altfuel">Alternative fuel</label><small>Biomass, RDF, and waste-derived fuel share.</small></div>
+                                        <output id="lbl-altfuel" for="inp-altfuel">15.0 <small>%</small></output>
+                                    </div>
+                                    <input type="range" id="inp-altfuel" min="0.0" max="40.0" step="0.5" value="15.0">
+                                    <div class="range-scale"><span>0%</span><span>40%</span></div>
+                                </div>
+
+                                <div class="control-group">
+                                    <div class="control-heading">
+                                        <div><label for="inp-output">Cement produced</label><small>Shared production volume for both models.</small></div>
+                                        <output id="lbl-output" for="inp-output">1,000 <small>tons</small></output>
+                                    </div>
+                                    <input type="range" id="inp-output" min="800" max="1400" step="10" value="1000">
+                                    <div class="range-scale"><span>800 t</span><span>1,400 t</span></div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="panel-card result-card cement-result">
+                            <div class="result-topline">
+                                <span class="panel-kicker">PREDICTED OUTPUT</span>
+                                <span class="live-tag"><i></i> Live</span>
+                            </div>
+                            <div class="result-primary">
+                                <span>Cement CO₂</span>
+                                <strong id="out-cement-co2">— <small>tCO₂</small></strong>
+                            </div>
+                            <div class="benchmark-block">
+                                <div class="benchmark-label"><span>Carbon intensity</span><strong id="out-cement-intensity">— tCO₂/t</strong></div>
+                                <div class="progress-track"><span id="cement-intensity-bar"></span></div>
+                                <div class="benchmark-scale"><span>Best 0.55</span><span>Current</span><span>1.00</span></div>
+                            </div>
+                            <div class="result-detail-grid">
+                                <div><span>Baseline avoided</span><strong id="out-cement-saved">— t</strong></div>
+                                <div><span>Production</span><strong id="cement-production-result">— t</strong></div>
+                            </div>
+                            <button type="button" class="primary-button full-button save-scenario-btn" data-save-scenario>
+                                <i class="fa-solid fa-floppy-disk"></i> Save this scenario
+                            </button>
+                        </article>
+                    </div>
+
+                    <article class="panel-card suggestion-card">
+                        <div class="panel-header">
+                            <div>
+                                <span class="panel-kicker">RECOMMENDED NEXT STEPS</span>
+                                <h2>Ways to reduce cement CO₂</h2>
+                            </div>
+                            <span class="panel-period">Updates live</span>
+                        </div>
+                        <div class="suggestion-list" id="cement-suggestions-list"></div>
+                    </article>
+
+                    <article class="panel-card compact-flow-card">
+                        <div class="panel-header">
+                            <div>
+                                <span class="panel-kicker">PROCESS MAP</span>
+                                <h2>Cement emission pathway</h2>
+                            </div>
+                        </div>
+                        <div class="flowchart horizontal-flow" aria-label="Cement emission pathway">
+                            <div class="flow-node flow-input">
+                                <span class="flow-node-icon cement"><i class="fa-solid fa-cubes"></i></span>
+                                <div><small>Material</small><strong id="cement-flow-clinker">—</strong></div>
+                            </div>
+                            <div class="flow-arrow"><span></span><i class="fa-solid fa-chevron-right"></i></div>
+                            <div class="flow-node flow-input">
+                                <span class="flow-node-icon neutral"><i class="fa-solid fa-fire-flame-curved"></i></span>
+                                <div><small>Fuel mix</small><strong id="cement-flow-fuel">—</strong></div>
+                            </div>
+                            <div class="flow-arrow"><span></span><i class="fa-solid fa-chevron-right"></i></div>
+                            <div class="flow-node flow-process">
+                                <span class="flow-node-icon cement"><i class="fa-solid fa-fire-burner"></i></span>
+                                <div><small>Kiln process</small><strong>Calcination + heat</strong></div>
+                            </div>
+                            <div class="flow-arrow"><span></span><i class="fa-solid fa-chevron-right"></i></div>
+                            <div class="flow-node flow-output">
+                                <div><small>Output</small><strong id="cement-flow-output">—</strong></div>
+                            </div>
+                        </div>
+                    </article>
+                </section>
+
+                <!-- ELECTRICITY VIEW -->
+                <section class="view" id="view-electricity" data-view-panel="electricity" hidden>
+                    <div class="page-heading">
+                        <div>
+                            <p class="eyebrow">ELECTRICITY · SCOPE 2</p>
+                            <h1>Power the plant with less carbon.</h1>
+                            <p>Model electricity demand, renewable supply, and grid intensity in real time.</p>
+                        </div>
+                        <span class="scope-badge power"><i class="fa-solid fa-bolt"></i> Indirect energy emissions</span>
+                    </div>
+
+                    <div class="simulator-grid">
+                        <article class="panel-card controls-card">
+                            <div class="panel-header controls-header">
+                                <div>
+                                    <span class="panel-kicker">SIMULATION INPUTS</span>
+                                    <h2>Electricity use</h2>
+                                </div>
+                                <button type="button" class="secondary-button reset-button" data-reset="electricity">
+                                    <i class="fa-solid fa-rotate-left"></i> Reset
+                                </button>
+                            </div>
+                            <div class="controls-body">
+                                <div class="control-group">
+                                    <div class="control-heading">
+                                        <div><label for="inp-mwh">Electricity consumed</label><small>Total plant demand for this batch.</small></div>
+                                        <output id="lbl-mwh" for="inp-mwh">115.0 <small>MWh</small></output>
+                                    </div>
+                                    <input type="range" id="inp-mwh" min="70.0" max="180.0" step="1.0" value="115.0">
+                                    <div class="range-scale"><span>70 MWh</span><span>180 MWh</span></div>
+                                </div>
+
+                                <div class="control-group">
+                                    <div class="control-heading">
+                                        <div><label for="inp-renew">Renewable power share</label><small>On-site solar, wind, or verified PPA supply.</small></div>
+                                        <output id="lbl-renew" for="inp-renew">16.5 <small>%</small></output>
+                                    </div>
+                                    <input type="range" id="inp-renew" min="0.0" max="80.0" step="0.5" value="16.5">
+                                    <div class="range-scale"><span>0%</span><span>80%</span></div>
+                                </div>
+
+                                <div class="control-group">
+                                    <div class="control-heading">
+                                        <div><label for="inp-gridfactor">Grid emission factor</label><small>Carbon intensity of the remaining grid mix.</small></div>
+                                        <output id="lbl-gridfactor" for="inp-gridfactor">0.715 <small>t/MWh</small></output>
+                                    </div>
+                                    <input type="range" id="inp-gridfactor" min="0.400" max="0.950" step="0.005" value="0.715">
+                                    <div class="range-scale"><span>0.40 · cleaner</span><span>0.95 · fossil</span></div>
+                                </div>
+
+                                <button type="button" class="production-link" data-jump-view="cement">
+                                    <i class="fa-solid fa-industry"></i>
+                                    <span><small>Production context</small><strong id="electricity-production-context">1,000 tons cement</strong></span>
+                                    <i class="fa-solid fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </article>
+
+                        <article class="panel-card result-card electricity-result">
+                            <div class="result-topline">
+                                <span class="panel-kicker">PREDICTED OUTPUT</span>
+                                <span class="live-tag"><i></i> Live</span>
+                            </div>
+                            <div class="result-primary">
+                                <span>Electricity CO₂</span>
+                                <strong id="out-elec-co2">— <small>tCO₂</small></strong>
+                            </div>
+                            <div class="benchmark-block">
+                                <div class="benchmark-label"><span>Power intensity</span><strong id="out-elec-kwh">— kWh/t</strong></div>
+                                <div class="progress-track power"><span id="electricity-intensity-bar"></span></div>
+                                <div class="benchmark-scale"><span>Best 100</span><span>Current</span><span>140</span></div>
+                            </div>
+                            <div class="result-detail-grid">
+                                <div><span>Gross-grid avoided</span><strong id="out-elec-saved">— t</strong></div>
+                                <div><span>Renewable share</span><strong id="electricity-renew-result">— %</strong></div>
+                            </div>
+                            <button type="button" class="primary-button power-button full-button save-scenario-btn" data-save-scenario>
+                                <i class="fa-solid fa-floppy-disk"></i> Save this scenario
+                            </button>
+                        </article>
+                    </div>
+
+                    <article class="panel-card suggestion-card">
+                        <div class="panel-header">
+                            <div>
+                                <span class="panel-kicker">RECOMMENDED NEXT STEPS</span>
+                                <h2>Ways to reduce electricity CO₂</h2>
+                            </div>
+                            <span class="panel-period">Updates live</span>
+                        </div>
+                        <div class="suggestion-list electricity-suggestions" id="electricity-suggestions-list"></div>
+                    </article>
+
+                    <article class="panel-card compact-flow-card">
+                        <div class="panel-header">
+                            <div>
+                                <span class="panel-kicker">PROCESS MAP</span>
+                                <h2>Electricity emission pathway</h2>
+                            </div>
+                        </div>
+                        <div class="flowchart horizontal-flow" aria-label="Electricity emission pathway">
+                            <div class="flow-node flow-input">
+                                <span class="flow-node-icon power"><i class="fa-solid fa-bolt"></i></span>
+                                <div><small>Demand</small><strong id="electricity-flow-demand">—</strong></div>
+                            </div>
+                            <div class="flow-arrow"><span></span><i class="fa-solid fa-chevron-right"></i></div>
+                            <div class="flow-node flow-input">
+                                <span class="flow-node-icon green"><i class="fa-solid fa-solar-panel"></i></span>
+                                <div><small>Clean supply</small><strong id="electricity-flow-renew">—</strong></div>
+                            </div>
+                            <div class="flow-arrow"><span></span><i class="fa-solid fa-chevron-right"></i></div>
+                            <div class="flow-node flow-process">
+                                <span class="flow-node-icon power"><i class="fa-solid fa-tower-broadcast"></i></span>
+                                <div><small>Grid mix</small><strong id="electricity-flow-grid">—</strong></div>
+                            </div>
+                            <div class="flow-arrow"><span></span><i class="fa-solid fa-chevron-right"></i></div>
+                            <div class="flow-node flow-output">
+                                <div><small>Output</small><strong id="electricity-flow-output">—</strong></div>
+                            </div>
+                        </div>
+                    </article>
+                </section>
+
+                <footer class="app-footer">
+                    <span>CarbonIQ emissions workspace</span>
+                    <span>Local model inference · SQLite history</span>
+                </footer>
+            </div>
+        </main>
+    </div>
+
+    <div class="toast" id="db-log-toast" role="status" aria-live="polite">
+        <span class="toast-icon"><i class="fa-solid fa-check"></i></span>
+        <div><strong>Scenario saved</strong><span id="toast-message">Your calculation was added to history.</span></div>
+        <button type="button" class="toast-close" aria-label="Close notification"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') if url_for is defined else 'static/app.js' }}"></script>
+</body>
+</html>
