@@ -750,11 +750,49 @@ select:focus-visible {
 }
 
 .page-heading {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    min-height: 152px;
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
     gap: 24px;
     margin-bottom: 28px;
+    padding: 26px 30px 24px;
+    background-color: var(--surface);
+    background-image: var(--heading-image, none);
+    background-position: right center;
+    background-size: cover;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.page-heading::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.99) 0%, rgba(255, 255, 255, 0.93) 48%, rgba(255, 255, 255, 0.24) 100%);
+    pointer-events: none;
+}
+
+.page-heading > * {
+    position: relative;
+    z-index: 1;
+}
+
+.overview-heading {
+    --heading-image: url("images/overview-carbon.svg");
+}
+
+.cement-heading {
+    --heading-image: url("images/cement-plant.svg");
+}
+
+.electricity-heading {
+    --heading-image: url("images/electricity-grid.svg");
 }
 
 .page-heading > div:first-child {
@@ -2595,7 +2633,10 @@ input[type="range"]:active::-webkit-slider-thumb {
     .page-heading {
         align-items: flex-start;
         flex-direction: column;
+        min-height: 0;
         margin-bottom: 22px;
+        padding: 22px 18px;
+        background-position: right bottom;
     }
 
     .page-heading h1 {
