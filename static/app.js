@@ -662,6 +662,7 @@ async function loadInitialData() {
     initCharts();
     renderHistoryChart();
     renderMonthlyOverview();
+    renderModelAccuracy();
 }
 
 function prepareHistoricalLookups() {
@@ -972,6 +973,38 @@ function getMonthlySummary() {
     return [...grouped.values()];
 }
 
+function renderModelAccuracy() {
+    const cementTotal = appData?.cement?.results_total?.['Linear Regression'];
+    const cementIntensity = appData?.cement?.results_intensity?.['Linear Regression'];
+    const electricity = appData?.electricity?.results_elec?.['Linear Regression'];
+
+    const metrics = [
+        { key: 'cement', data: cementTotal, prefix: '' },
+        { key: 'intensity', data: cementIntensity, prefix: '' },
+        { key: 'electricity', data: electricity, prefix: '' }
+    ];
+    const available = metrics.filter(metric => numberValue(metric.data?.R2_Test, -1) >= 0);
+
+    if (!available.length) {
+        ['accuracy-overall', 'accuracy-cement-r2', 'accuracy-intensity-r2', 'accuracy-electricity-r2'].forEach(id => setText(id, '—'));
+        setWidth('accuracy-meter-fill', 0);
+        return;
+    }
+
+    const overall = available.reduce((sum, metric) => sum + numberValue(metric.data.R2_Test), 0) / available.length;
+    setText('accuracy-overall', `${(overall * 100).toFixed(1)}%`);
+    setWidth('accuracy-meter-fill', overall * 100);
+
+    setText('accuracy-cement-r2', `${(numberValue(cementTotal?.R2_Test) * 100).toFixed(1)}%`);
+    setText('accuracy-cement-detail', `RMSE ${formatNumber(cementTotal?.RMSE)} t · MAE ${formatNumber(cementTotal?.MAE)} t`);
+
+    setText('accuracy-intensity-r2', `${(numberValue(cementIntensity?.R2_Test) * 100).toFixed(1)}%`);
+    setText('accuracy-intensity-detail', `RMSE ${numberValue(cementIntensity?.RMSE).toFixed(3)} · MAE ${numberValue(cementIntensity?.MAE).toFixed(3)}`);
+
+    setText('accuracy-electricity-r2', `${(numberValue(electricity?.R2_Test) * 100).toFixed(1)}%`);
+    setText('accuracy-electricity-detail', `RMSE ${formatNumber(electricity?.RMSE)} t · MAE ${formatNumber(electricity?.MAE)} t`);
+}
+
 function renderHistoryTable(timeline) {
     const tbody = document.getElementById('daily-ledger-tbody');
     if (!tbody) return;
@@ -1010,6 +1043,71 @@ function renderHistoryTable(timeline) {
     }).join('');
 }
 
+function buildHistoryExportRows() {
+    return (appData?.daily_timeline || []).map(row => {
+        const cementInput = cementLookup.get(row.Batch_ID);
+        const electricityInput = electricityLookup.get(row.Batch_ID);
+
+        return {
+            'Batch ID': row.Batch_ID || '',
+            'Date': row.Date || '',
+            'Clinker factor': cementInput ? numberValue(cementInput.Clinker_Factor) : '',
+            'Coal consumed (t)': cementInput ? numberValue(cementInput.Coal_Consumed_Tons) : '',
+            'Alternative fuel (%)': cementInput ? numberValue(cementInput.Alternative_Fuel_Substitution_Pct) : '',
+            'Cement produced (t)': numberValue(row.Cement_Output_Tons),
+            'Electricity (MWh)': electricityInput ? numberValue(electricityInput.Electricity_MWh) : numberValue(row.Electricity_MWh),
+            'Renewable share (%)': electricityInput ? numberValue(electricityInput.Renewable_Share_Pct) : '',
+            'Grid factor (tCO₂/MWh)': electricityInput ? numberValue(electricityInput.Grid_Emission_Factor) : '',
+            'Cement CO₂ (t)': numberValue(row.Cement_CO2_Actual),
+            'Electricity CO₂ (t)': numberValue(row.Elec_CO2_Actual),
+            'Total CO₂ (t)': numberValue(row.Combined_Total_CO2_Actual)
+        };
+    });
+}
+
+function downloadHistory(format = 'csv') {
+    const rows = buildHistoryExportRows();
+    if (!rows.length) {
+        showToast('Nothing to download', 'There are no historical batches available yet.', 'error');
+        return;
+    }
+
+    const dateStamp = new Date().toISOString().slice(0, 10);
+    if (format === 'xlsx' && window.XLSX) {
+        const worksheet = window.XLSX.utils.json_to_sheet(rows);
+        const workbook = window.XLSX.utils.book_new();
+        window.XLSX.utils.book_append_sheet(workbook, worksheet, 'Carbon history');
+        window.XLSX.writeFile(workbook, `carboniq-history-${dateStamp}.xlsx`);
+        showToast('History downloaded', `${rows.length} batches exported as an Excel workbook.`);
+        return;
+    }
+
+    if (format === 'xlsx' && !window.XLSX) {
+        showToast('Excel export unavailable', 'Downloading the same history as CSV instead.');
+    }
+
+    const headers = Object.keys(rows[0]);
+    const escapeCsv = value => {
+        const text = value === null || value === undefined ? '' : String(value);
+        return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    };
+    const csv = [
+        headers.map(escapeCsv).join(','),
+        ...rows.map(row => headers.map(header => escapeCsv(row[header])).join(','))
+    ].join('\r\n');
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `carboniq-history-${dateStamp}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    if (format !== 'xlsx') showToast('History downloaded', `${rows.length} batches exported as CSV.`);
+}
+
 function initHistoryControls() {
     const rangeSelect = document.getElementById('history-range');
     rangeSelect?.addEventListener('change', renderHistoryChart);
@@ -1025,6 +1123,8 @@ function initHistoryControls() {
     });
 
     document.getElementById('refresh-history-btn')?.addEventListener('click', loadDbHistory);
+    document.getElementById('download-csv-btn')?.addEventListener('click', () => downloadHistory('csv'));
+    document.getElementById('download-xlsx-btn')?.addEventListener('click', () => downloadHistory('xlsx'));
 }
 
 // ==========================================

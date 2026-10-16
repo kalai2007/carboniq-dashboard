@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') if url_for is defined else 'static/styles.css' }}">
 </head>
 <body>
@@ -182,10 +183,7 @@
                             <h1>One clear view of your carbon.</h1>
                             <p>See where emissions come from, how they move through the plant, and how they compare with past batches.</p>
                         </div>
-                        <div class="heading-note">
-                            <i class="fa-regular fa-calendar"></i>
-                            <span><strong id="history-range-label">50 batches</strong> in the history</span>
-                        </div>
+                        
                     </div>
 
                     <div class="metric-grid">
@@ -366,6 +364,41 @@
                         </div>
                     </article>
 
+                    <article class="panel-card accuracy-card">
+                        <div class="panel-header">
+                            <div>
+                                <span class="panel-kicker">MODEL VALIDATION</span>
+                                <h2>Prediction accuracy</h2>
+                            </div>
+                            <span class="panel-period">Test-set metrics</span>
+                        </div>
+                        <div class="accuracy-layout">
+                            <div class="accuracy-overview">
+                                <span>Average R² score</span>
+                                <strong id="accuracy-overall">—</strong>
+                                <small>Across cement and electricity models</small>
+                                <div class="accuracy-meter"><span id="accuracy-meter-fill"></span></div>
+                            </div>
+                            <div class="accuracy-metrics">
+                                <div class="accuracy-metric">
+                                    <span>Cement total CO₂</span>
+                                    <strong id="accuracy-cement-r2">—</strong>
+                                    <small id="accuracy-cement-detail">—</small>
+                                </div>
+                                <div class="accuracy-metric">
+                                    <span>Cement intensity</span>
+                                    <strong id="accuracy-intensity-r2">—</strong>
+                                    <small id="accuracy-intensity-detail">—</small>
+                                </div>
+                                <div class="accuracy-metric">
+                                    <span>Electricity CO₂</span>
+                                    <strong id="accuracy-electricity-r2">—</strong>
+                                    <small id="accuracy-electricity-detail">—</small>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
                     <div class="overview-bottom-grid">
                         <article class="panel-card history-card">
                             <div class="panel-header history-header">
@@ -373,9 +406,19 @@
                                     <span class="panel-kicker">OLD INPUTS & OUTPUTS</span>
                                     <h2>Historical batches</h2>
                                 </div>
-                                <div class="table-search">
-                                    <i class="fa-solid fa-magnifying-glass"></i>
-                                    <input type="search" id="daily-ledger-search" placeholder="Search batch or date" aria-label="Search historical batches">
+                                <div class="history-actions">
+                                    <div class="table-search">
+                                        <i class="fa-solid fa-magnifying-glass"></i>
+                                        <input type="search" id="daily-ledger-search" placeholder="Search batch or date" aria-label="Search historical batches">
+                                    </div>
+                                    <div class="download-actions" aria-label="Download historical batches">
+                                        <button type="button" class="download-button" id="download-csv-btn" title="Download all history as CSV">
+                                            <i class="fa-solid fa-file-csv"></i> CSV
+                                        </button>
+                                        <button type="button" class="download-button" id="download-xlsx-btn" title="Download all history as Excel workbook">
+                                            <i class="fa-solid fa-file-excel"></i> XLSX
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="table-wrap history-table-wrap">
@@ -421,7 +464,7 @@
                             <h1>Reduce cement emissions.</h1>
                             <p>Adjust production inputs and see the predicted CO₂ impact instantly.</p>
                         </div>
-                        <span class="scope-badge cement"><i class="fa-solid fa-industry"></i> Direct process emissions</span>
+                        
                     </div>
 
                     <div class="simulator-grid">
@@ -547,7 +590,7 @@
                             <h1>Power the plant with less carbon.</h1>
                             <p>Model electricity demand, renewable supply, and grid intensity in real time.</p>
                         </div>
-                        <span class="scope-badge power"><i class="fa-solid fa-bolt"></i> Indirect energy emissions</span>
+                        
                     </div>
 
                     <div class="simulator-grid">
