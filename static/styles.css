@@ -39,12 +39,22 @@ html {
 body {
     min-width: 320px;
     min-height: 100vh;
-    background: var(--canvas);
+    background-color: var(--canvas);
+    background-image:
+        radial-gradient(circle at 8% 4%, rgba(24, 121, 78, 0.055) 0, transparent 30%),
+        radial-gradient(circle at 92% 12%, rgba(40, 120, 208, 0.045) 0, transparent 28%),
+        linear-gradient(180deg, #f8faf9 0%, var(--canvas) 48%, #f2f6f3 100%);
+    background-attachment: fixed;
     color: var(--text);
     font-family: var(--font);
     font-size: 14px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+    color: var(--green-dark);
+    background: #d6ecdc;
 }
 
 button,
@@ -879,6 +889,13 @@ select:focus-visible {
     background: var(--surface);
     border: 1px solid var(--line);
     box-shadow: var(--shadow-sm);
+    transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.metric-card:hover,
+.panel-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(19, 36, 27, 0.075);
 }
 
 .metric-card {
