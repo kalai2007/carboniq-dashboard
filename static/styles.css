@@ -41,9 +41,10 @@ body {
     min-height: 100vh;
     background-color: var(--canvas);
     background-image:
-        radial-gradient(circle at 8% 4%, rgba(24, 121, 78, 0.055) 0, transparent 30%),
-        radial-gradient(circle at 92% 12%, rgba(40, 120, 208, 0.045) 0, transparent 28%),
-        linear-gradient(180deg, #f8faf9 0%, var(--canvas) 48%, #f2f6f3 100%);
+        radial-gradient(circle at 7% 10%, rgba(24, 121, 78, 0.085) 0, transparent 27%),
+        radial-gradient(circle at 92% 8%, rgba(40, 120, 208, 0.075) 0, transparent 25%),
+        radial-gradient(circle at 74% 86%, rgba(217, 119, 6, 0.065) 0, transparent 26%),
+        linear-gradient(135deg, #fbfdfc 0%, #f3f8fb 52%, #fdfaf5 100%);
     background-attachment: fixed;
     color: var(--text);
     font-family: var(--font);
